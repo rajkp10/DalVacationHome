@@ -1,0 +1,979 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Parameters:
+  LambdaExecutionRoleArn:
+    Description: "ARN of the IAM role for executing Lambda functions."
+    Type: String
+  StepFunctionExecutionRoleArn:
+    Description: "ARN of the IAM role for executing Step Functions state machine."
+    Type: String
+
+Resources:
+  BookingTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: Booking1
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: roomNumber
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+        - AttributeName: roomNumber
+          KeyType: RANGE
+      BillingMode: PROVISIONED
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+      TableClass: STANDARD
+
+  MessagesTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: Messages1
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      BillingMode: PROVISIONED
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+      TableClass: STANDARD
+
+  ReviewsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: Reviews1
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      BillingMode: PROVISIONED
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+      TableClass: STANDARD
+
+  RoomTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: Room1
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: roomNumber
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+        - AttributeName: roomNumber
+          KeyType: RANGE
+      BillingMode: PROVISIONED
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+      TableClass: STANDARD
+
+  UsersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: Users1
+      AttributeDefinitions:
+        - AttributeName: userId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: userId
+          KeyType: HASH
+      BillingMode: PROVISIONED
+      ProvisionedThroughput:
+        ReadCapacityUnits: 1
+        WriteCapacityUnits: 1
+      TableClass: STANDARD
+  
+  # Lambda Layers
+  CommonLayer:
+    Type: AWS::Lambda::LayerVersion
+    Properties:
+      LayerName: common-layer
+      Content: 
+        S3Bucket: dal-housing-lambda-code
+        S3Key: layers/LambdaLayerV3.zip
+      CompatibleRuntimes:
+        - nodejs16.x
+
+  # Lambda Functions
+  CheckBookingDetails:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: checkBookingDetails1
+      Role: !Ref LambdaExecutionRoleArn
+      Runtime: nodejs16.x
+      Handler: index.handler
+      Code:
+        S3Bucket: dal-housing-lambda-code
+        S3Key: lambdas/checkBookingDetails.zip
+      Layers:
+        - !Ref CommonLayer
+      Environment:
+        Variables:
+          DYNAMODB_TABLE_BOOKING: !Ref BookingTable
+
+  # Adding remaining Lambda functions
+  ReserveBooking:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: reserveBooking1
+      Role: !Ref LambdaExecutionRoleArn
+      Runtime: nodejs16.x
+      Handler: index.handler
+      Code:
+        S3Bucket: dal-housing-lambda-code
+        S3Key: lambdas/reserveBooking.zip
+      Layers:
+        - !Ref CommonLayer
+      Environment:
+        Variables:
+          DYNAMODB_TABLE_BOOKING: !Ref BookingTable
+
+  AssignComplaint:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: assignComplaint1
+      Role: !Ref LambdaExecutionRoleArn
+      Runtime: nodejs16.x
+      Handler: index.handler
+      Code:
+        S3Bucket: dal-housing-lambda-code
+        S3Key: lambdas/assignComplaint.zip
+      Layers:
+        - !Ref CommonLayer
+      Environment:
+        Variables:
+          DYNAMODB_TABLE_MESSAGES: !Ref MessagesTable
+
+  RegisterComplaint:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: registerComplaint1
+      Role: !Ref LambdaExecutionRoleArn
+      Runtime: nodejs16.x
+      Handler: index.handler
+      Code:
+        S3Bucket: dal-housing-lambda-code
+        S3Key: lambdas/registerComplaint.zip
+      Layers:
+        - !Ref CommonLayer
+      Environment:
+        Variables:
+          DYNAMODB_TABLE_MESSAGES: !Ref MessagesTable
+          GOOGLE_APPLICATION_CREDENTIALS: tempo_key.json
+          PUBSUB_TOPIC_NAME: projects/csci5410project-425016/topics/test-topic
+
+  RetrieveBookingDetails:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: retrieveBookingDetails1
+      Role: !Ref LambdaExecutionRoleArn
+      Runtime: nodejs16.x
+      Handler: index.handler
+      Code:
+        S3Bucket: dal-housing-lambda-code
+        S3Key: lambdas/retrieveBookingDetails.zip
+      Layers:
+        - !Ref CommonLayer
+      Environment:
+        Variables:
+          DYNAMODB_TABLE_BOOKING: !Ref BookingTable
+
+  PerformSentimentAnalysis:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: performSentimentAnalysis1
+      Role: !Ref LambdaExecutionRoleArn
+      Runtime: nodejs16.x
+      Handler: index.handler
+      Code:
+        S3Bucket: dal-housing-lambda-code
+        S3Key: lambdas/performSentimentAnalysis.zip
+      Layers:
+        - !Ref CommonLayer
+      Environment:
+        Variables:
+          GOOGLE_APPLICATION_CREDENTIALS: npl-key.json
+
+  GetBookingByUserID:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: getBookingByUserID1
+      Role: !Ref LambdaExecutionRoleArn
+      Runtime: nodejs16.x
+      Handler: index.handler
+      Code:
+        S3Bucket: dal-housing-lambda-code
+        S3Key: lambdas/getBookingByUserID.zip
+      Layers:
+        - !Ref CommonLayer
+      Environment:
+        Variables:
+          DYNAMODB_TABLE_USERS: !Ref UsersTable
+
+  CreateBooking:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: createBooking1
+      Role: !Ref LambdaExecutionRoleArn
+      Runtime: nodejs16.x
+      Handler: index.handler
+      Code:
+        S3Bucket: dal-housing-lambda-code
+        S3Key: lambdas/createBooking.zip
+      Layers:
+        - !Ref CommonLayer
+      Environment:
+        Variables:
+          DYNAMODB_TABLE_BOOKING: !Ref BookingTable
+
+  GetReviewsByRoomNo:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: getReviewsByRoomNo1
+      Role: !Ref LambdaExecutionRoleArn
+      Runtime: nodejs16.x
+      Handler: index.handler
+      Code:
+        S3Bucket: dal-housing-lambda-code
+        S3Key: lambdas/getReviewsByRoomNo.zip
+      Layers:
+        - !Ref CommonLayer
+      Environment:
+        Variables:
+          DYNAMODB_TABLE_REVIEWS: !Ref ReviewsTable
+
+  DialogFlowInputParser:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: dialogFlowInputParser1
+      Role: !Ref LambdaExecutionRoleArn
+      Runtime: nodejs16.x
+      Handler: index.handler
+      Code:
+        S3Bucket: dal-housing-lambda-code
+        S3Key: lambdas/dailogFlowInputParser.zip
+      Layers:
+        - !Ref CommonLayer
+
+  GetBookingsByRoomNo:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: getBookingsByRoomNo1
+      Role: !Ref LambdaExecutionRoleArn
+      Runtime: nodejs16.x
+      Handler: index.handler
+      Code:
+        S3Bucket: dal-housing-lambda-code
+        S3Key: lambdas/getBookingsByRoomNo.zip
+      Layers:
+        - !Ref CommonLayer
+      Environment:
+        Variables:
+          DYNAMODB_TABLE_ROOM: !Ref RoomTable
+
+  StepFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: "/aws/states/ExpressBookingStateMachineLogs"
+      RetentionInDays: 14
+
+  BookingStateMachine:
+    Type: AWS::StepFunctions::StateMachine
+    Properties:
+      StateMachineName: "ExpressBookingStateMachine"
+      StateMachineType: "EXPRESS"
+      DefinitionString: !Sub |
+        {
+          "Comment": "A description of my state machine",
+          "StartAt": "GCP DialogFlow Input Parser",
+          "States": {
+            "GCP DialogFlow Input Parser": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::lambda:invoke",
+              "OutputPath": "$.Payload",
+              "Parameters": {
+                "Payload.$": "$",
+                "FunctionName": "${DialogFlowInputParser.Arn}"
+              },
+              "Retry": [
+                {
+                  "ErrorEquals": [
+                    "Lambda.ServiceException",
+                    "Lambda.AWSLambdaException",
+                    "Lambda.SdkClientException",
+                    "Lambda.TooManyRequestsException"
+                  ],
+                  "IntervalSeconds": 1,
+                  "MaxAttempts": 3,
+                  "BackoffRate": 2
+                }
+              ],
+              "Next": "Choice"
+            },
+            "Choice": {
+              "Type": "Choice",
+              "Choices": [
+                {
+                  "Variable": "$.intent.displayName",
+                  "StringMatches": "book-room",
+                  "Next": "Check Room Booking Availability"
+                },
+                {
+                  "Variable": "$.intent.displayName",
+                  "StringMatches": "book-room-yes",
+                  "Next": "Add Room Booking Details"
+                },
+                {
+                  "Variable": "$.intent.displayName",
+                  "StringMatches": "retrieve-booking-details",
+                  "Next": "Retrieve Booking Details by ID"
+                },
+                {
+                  "Variable": "$.intent.displayName",
+                  "StringMatches": "register-complaint",
+                  "Next": "Register Complaint"
+                }
+              ]
+            },
+            "Check Room Booking Availability": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::lambda:invoke",
+              "OutputPath": "$.Payload",
+              "Parameters": {
+                "Payload.$": "$",
+                "FunctionName": "${CheckBookingDetails.Arn}"
+              },
+              "End": true
+            },
+            "Add Room Booking Details": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::lambda:invoke",
+              "OutputPath": "$.Payload",
+              "Parameters": {
+                "Payload.$": "$",
+                "FunctionName": "${CreateBooking.Arn}"
+              },
+              "End": true
+            },
+            "Retrieve Booking Details by ID": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::lambda:invoke",
+              "OutputPath": "$.Payload",
+              "Parameters": {
+                "Payload.$": "$",
+                "FunctionName": "${RetrieveBookingDetails.Arn}"
+              },
+              "End": true
+            },
+            "Register Complaint": {
+              "Type": "Task",
+              "Resource": "arn:aws:states:::lambda:invoke",
+              "OutputPath": "$.Payload",
+              "Parameters": {
+                "Payload.$": "$",
+                "FunctionName": "${RegisterComplaint.Arn}"
+              },
+              "End": true
+            }
+          }
+        }
+      RoleArn: !Ref StepFunctionExecutionRoleArn
+      LoggingConfiguration:
+        Destinations:
+          - CloudWatchLogsLogGroup:
+              LogGroupArn: !GetAtt StepFunctionLogGroup.Arn
+        IncludeExecutionData: true
+        Level: "ALL"
+  
+  ApiGatewayRestApi:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: "MyServiceAPI"
+      Description: "API Gateway for various services with CORS enabled."
+  
+  # CORS Options method common for all endpoints
+  CorsOptions:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref ApiGatewayRestApi
+      ResourceId: !GetAtt ApiGatewayRestApi.RootResourceId
+      HttpMethod: OPTIONS
+      AuthorizationType: NONE
+      Integration:
+        Type: MOCK
+        RequestTemplates:
+          application/json: |
+            {
+              "statusCode": 200
+            }
+        IntegrationResponses:
+          - StatusCode: "200"
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Methods: "'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+            ResponseTemplates:
+              application/json: |
+                {}
+      MethodResponses:
+        - StatusCode: "200"
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Origin: true
+          ResponseModels:
+            application/json: "Empty"
+
+  CreateReviewResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt ApiGatewayRestApi.RootResourceId
+      PathPart: 'create-review'
+      RestApiId: !Ref ApiGatewayRestApi
+
+  CreateReviewPOSTMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref ApiGatewayRestApi
+      ResourceId: !Ref CreateReviewResource
+      HttpMethod: POST
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS
+        IntegrationHttpMethod: POST
+        Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${PerformSentimentAnalysis.Arn}/invocations"
+        Credentials: !Ref StepFunctionExecutionRoleArn
+        IntegrationResponses:
+          - StatusCode: "200"
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Methods: "'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+      MethodResponses:
+        - StatusCode: "200"
+          ResponseModels:
+            application/json: "Empty"
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Origin: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Headers: true
+            
+  
+  CreateReviewOptionsMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref ApiGatewayRestApi
+      ResourceId: !Ref CreateReviewResource
+      HttpMethod: OPTIONS
+      AuthorizationType: NONE
+      Integration:
+        Type: MOCK
+        IntegrationResponses:
+          - StatusCode: "200"
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+              method.response.header.Access-Control-Allow-Methods: "'POST,OPTIONS'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+        RequestTemplates:
+          application/json: "{\"statusCode\": 200}"
+      MethodResponses:
+        - StatusCode: "200"
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Origin: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Headers: true
+
+  GetBookingByUserIdResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt ApiGatewayRestApi.RootResourceId
+      PathPart: 'get-booking-by-userid'
+      RestApiId: !Ref ApiGatewayRestApi
+
+  GetBookingByUserIdGETMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref ApiGatewayRestApi
+      ResourceId: !Ref GetBookingByUserIdResource
+      HttpMethod: GET
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetBookingByUserID.Arn}/invocations"
+        Credentials: !Ref StepFunctionExecutionRoleArn
+      MethodResponses:
+        - StatusCode: "200"
+          ResponseModels:
+            application/json: "Empty"
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Origin: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Headers: true
+
+  GetBookingByUserIdOptionsMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref ApiGatewayRestApi
+      ResourceId: !Ref GetBookingByUserIdResource
+      HttpMethod: OPTIONS
+      AuthorizationType: NONE
+      Integration:
+        Type: MOCK
+        IntegrationResponses:
+          - StatusCode: "200"
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,OPTIONS'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+        RequestTemplates:
+          application/json: "{\"statusCode\": 200}"
+      MethodResponses:
+        - StatusCode: "200"
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Origin: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Headers: true
+
+  GetRoomBookingsResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt ApiGatewayRestApi.RootResourceId
+      PathPart: 'get-room-bookings'
+      RestApiId: !Ref ApiGatewayRestApi
+
+  GetRoomBookingsGETMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref ApiGatewayRestApi
+      ResourceId: !Ref GetRoomBookingsResource
+      HttpMethod: GET
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetBookingsByRoomNo.Arn}/invocations"
+        Credentials: !Ref StepFunctionExecutionRoleArn
+      MethodResponses:
+        - StatusCode: "200"
+          ResponseModels:
+            application/json: "Empty"
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Origin: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Headers: true
+
+  GetRoomBookingsOptionsMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref ApiGatewayRestApi
+      ResourceId: !Ref GetRoomBookingsResource
+      HttpMethod: OPTIONS
+      AuthorizationType: NONE
+      Integration:
+        Type: MOCK
+        IntegrationResponses:
+          - StatusCode: "200"
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,OPTIONS'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+        RequestTemplates:
+          application/json: "{\"statusCode\": 200}"
+      MethodResponses:
+        - StatusCode: "200"
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Origin: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Headers: true
+
+  GetRoomReviewsResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt ApiGatewayRestApi.RootResourceId
+      PathPart: 'get-room-reviews'
+      RestApiId: !Ref ApiGatewayRestApi
+
+  GetRoomReviewsGETMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref ApiGatewayRestApi
+      ResourceId: !Ref GetRoomReviewsResource
+      HttpMethod: GET
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetReviewsByRoomNo.Arn}/invocations"
+        Credentials: !Ref StepFunctionExecutionRoleArn
+      MethodResponses:
+        - StatusCode: "200"
+          ResponseModels:
+            application/json: "Empty"
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Origin: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Headers: true
+
+  GetRoomReviewsOptionsMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref ApiGatewayRestApi
+      ResourceId: !Ref GetRoomReviewsResource
+      HttpMethod: OPTIONS
+      AuthorizationType: NONE
+      Integration:
+        Type: MOCK
+        IntegrationResponses:
+          - StatusCode: "200"
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+              method.response.header.Access-Control-Allow-Methods: "'GET,OPTIONS'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+        RequestTemplates:
+          application/json: "{\"statusCode\": 200}"
+      MethodResponses:
+        - StatusCode: "200"
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Origin: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Headers: true
+
+  # API Gateway resource for /parse-dialogflow
+  ParseDialogFlowResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt ApiGatewayRestApi.RootResourceId
+      PathPart: 'parse-dialogflow'
+      RestApiId: !Ref ApiGatewayRestApi
+
+  ParseDialogFlowPOSTMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref ApiGatewayRestApi
+      ResourceId: !Ref ParseDialogFlowResource
+      HttpMethod: POST
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS
+        IntegrationHttpMethod: POST
+        Uri: !Sub "arn:aws:apigateway:${AWS::Region}:states:action/StartExecution"
+        Credentials: !Ref StepFunctionExecutionRoleArn
+        RequestTemplates:
+          application/json: |
+            {
+              "input": "$util.escapeJavaScript($input.json('$'))",
+              "stateMachineArn": "${BookingStateMachine.Arn}"
+            }
+        IntegrationResponses:
+          - StatusCode: "200"
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Methods: "'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+      MethodResponses:
+        - StatusCode: "200"
+          ResponseModels:
+            application/json: "Empty"
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Origin: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Headers: true
+
+  ParseDialogFlowOptionsMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref ApiGatewayRestApi
+      ResourceId: !Ref ParseDialogFlowResource
+      HttpMethod: OPTIONS
+      AuthorizationType: NONE
+      Integration:
+        Type: MOCK
+        IntegrationResponses:
+          - StatusCode: "200"
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+              method.response.header.Access-Control-Allow-Methods: "'POST,OPTIONS'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+        RequestTemplates:
+          application/json: "{\"statusCode\": 200}"
+      MethodResponses:
+        - StatusCode: "200"
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Origin: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Headers: true
+
+  ReserveRoomResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt ApiGatewayRestApi.RootResourceId
+      PathPart: 'reserve-room'
+      RestApiId: !Ref ApiGatewayRestApi
+
+  ReserveRoomPOSTMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref ApiGatewayRestApi
+      ResourceId: !Ref ReserveRoomResource
+      HttpMethod: POST
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS
+        IntegrationHttpMethod: POST
+        Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ReserveBooking.Arn}/invocations"
+        Credentials: !Ref StepFunctionExecutionRoleArn
+        IntegrationResponses:
+          - StatusCode: "200"
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Methods: "'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+      MethodResponses:
+        - StatusCode: "200"
+          ResponseModels:
+            application/json: "Empty"
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Origin: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Headers: true
+
+  ReserveRoomOptionsMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref ApiGatewayRestApi
+      ResourceId: !Ref ReserveRoomResource
+      HttpMethod: OPTIONS
+      AuthorizationType: NONE
+      Integration:
+        Type: MOCK
+        IntegrationResponses:
+          - StatusCode: "200"
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+              method.response.header.Access-Control-Allow-Methods: "'POST,OPTIONS'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+        RequestTemplates:
+          application/json: "{\"statusCode\": 200}"
+      MethodResponses:
+        - StatusCode: "200"
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Origin: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Headers: true
+
+  SubscriberResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      ParentId: !GetAtt ApiGatewayRestApi.RootResourceId
+      PathPart: 'subscriber'
+      RestApiId: !Ref ApiGatewayRestApi
+
+  SubscriberPOSTMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref ApiGatewayRestApi
+      ResourceId: !Ref SubscriberResource
+      HttpMethod: POST
+      AuthorizationType: NONE
+      Integration:
+        Type: AWS
+        IntegrationHttpMethod: POST
+        Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ReserveBooking.Arn}/invocations"
+        Credentials: !Ref StepFunctionExecutionRoleArn
+        IntegrationResponses:
+          - StatusCode: "200"
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+              method.response.header.Access-Control-Allow-Methods: "'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+      MethodResponses:
+        - StatusCode: "200"
+          ResponseModels:
+            application/json: "Empty"
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Origin: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Headers: true
+
+  SubscriberOptionsMethod:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref ApiGatewayRestApi
+      ResourceId: !Ref SubscriberResource
+      HttpMethod: OPTIONS
+      AuthorizationType: NONE
+      Integration:
+        Type: MOCK
+        IntegrationResponses:
+          - StatusCode: "200"
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+              method.response.header.Access-Control-Allow-Methods: "'POST,OPTIONS'"
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+        RequestTemplates:
+          application/json: "{\"statusCode\": 200}"
+      MethodResponses:
+        - StatusCode: "200"
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Origin: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Headers: true
+
+  ApiGatewayDeployment:
+    Type: AWS::ApiGateway::Deployment
+    DependsOn:
+      - ParseDialogFlowPOSTMethod
+      - CreateReviewPOSTMethod
+      - GetBookingByUserIdGETMethod
+      - GetRoomBookingsGETMethod
+      - GetRoomReviewsGETMethod
+      - ReserveRoomPOSTMethod
+      - SubscriberPOSTMethod
+      - ParseDialogFlowOptionsMethod
+      - CreateReviewOptionsMethod
+      - GetBookingByUserIdOptionsMethod
+      - GetRoomBookingsOptionsMethod
+      - GetRoomReviewsOptionsMethod
+      - ReserveRoomOptionsMethod
+      - SubscriberOptionsMethod
+    Properties:
+      RestApiId: !Ref ApiGatewayRestApi
+      StageName: 'v1'
+      Description: 'Initial deployment'
+
+Outputs:
+  ApiGatewayURL:
+    Description: "URL for the deployed API Gateway"
+    Value: !Sub "https://${ApiGatewayRestApi}.execute-api.${AWS::Region}.amazonaws.com/v1/"
+    Export:
+      Name: !Sub "${AWS::StackName}-ApiGatewayURL"
+      
+  BookingStateMachineArn:
+    Description: "ARN of the Express Booking State Machine"
+    Value: !Ref BookingStateMachine
+    Export:
+      Name: !Sub "${AWS::StackName}-BookingStateMachineArn"
+
+  StepFunctionLogGroupArn:
+    Description: "ARN of the Step Functions Log Group"
+    Value: !GetAtt StepFunctionLogGroup.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-StepFunctionLogGroupArn"
+      
+  CommonLayerVersionArn:
+    Description: "ARN of the common Lambda Layer"
+    Value: !Ref CommonLayer
+    Export:
+      Name: !Sub "${AWS::StackName}-CommonLayerVersionArn"
+
+  # Outputs for each Lambda function are defined below similarly
+  CheckBookingDetailsFunctionArn:
+    Description: "ARN of the CheckBookingDetails Lambda Function"
+    Value: !GetAtt CheckBookingDetails.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-CheckBookingDetailsFunctionArn"
+
+  ReserveBookingFunctionArn:
+    Description: "ARN of the ReserveBooking Lambda Function"
+    Value: !GetAtt ReserveBooking.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-ReserveBookingFunctionArn"
+
+  AssignComplaintFunctionArn:
+    Description: "ARN of the AssignComplaint Lambda Function"
+    Value: !GetAtt AssignComplaint.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-AssignComplaintFunctionArn"
+
+  RegisterComplaintFunctionArn:
+    Description: "ARN of the RegisterComplaint Lambda Function"
+    Value: !GetAtt RegisterComplaint.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-RegisterComplaintFunctionArn"
+
+  RetrieveBookingDetailsFunctionArn:
+    Description: "ARN of the RetrieveBookingDetails Lambda Function"
+    Value: !GetAtt RetrieveBookingDetails.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-RetrieveBookingDetailsFunctionArn"
+
+  PerformSentimentAnalysisFunctionArn:
+    Description: "ARN of the PerformSentimentAnalysis Lambda Function"
+    Value: !GetAtt PerformSentimentAnalysis.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-PerformSentimentAnalysisFunctionArn"
+
+  GetBookingByUserIDFunctionArn:
+    Description: "ARN of the GetBookingByUserID Lambda Function"
+    Value: !GetAtt GetBookingByUserID.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-GetBookingByUserIDFunctionArn"
+
+  CreateBookingFunctionArn:
+    Description: "ARN of the CreateBooking Lambda Function"
+    Value: !GetAtt CreateBooking.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-CreateBookingFunctionArn"
+
+  GetReviewsByRoomNoFunctionArn:
+    Description: "ARN of the GetReviewsByRoomNo Lambda Function"
+    Value: !GetAtt GetReviewsByRoomNo.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-GetReviewsByRoomNoFunctionArn"
+
+  DialogFlowInputParserFunctionArn:
+    Description: "ARN of the DialogFlowInputParser Lambda Function"
+    Value: !GetAtt DialogFlowInputParser.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-DialogFlowInputParserFunctionArn"
+
+  GetBookingsByRoomNoFunctionArn:
+    Description: "ARN of the GetBookingsByRoomNo Lambda Function"
+    Value: !GetAtt GetBookingsByRoomNo.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-GetBookingsByRoomNoFunctionArn"
+
+  BookingTableArn:
+    Description: "ARN of Booking Table"
+    Value: !GetAtt BookingTable.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-BookingTableArn"
+
+  MessagesTableArn:
+    Description: "ARN of Messages Table"
+    Value: !GetAtt MessagesTable.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-MessagesTableArn"
+
+  RoomTableArn:
+    Description: "ARN of Room Table"
+    Value: !GetAtt RoomTable.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-RoomTableArn"
+
+  ReviewsTableArn:
+    Description: "ARN of Reviews Table"
+    Value: !GetAtt ReviewsTable.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-ReviewsTableArn"
+
+  UsersTableArn:
+    Description: "ARN of Users Table"
+    Value: !GetAtt UsersTable.Arn
+    Export:
+      Name: !Sub "${AWS::StackName}-UsersTableArn"

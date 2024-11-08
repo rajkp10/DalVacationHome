@@ -1,0 +1,442 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  LoginFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: LoginFunction
+      Handler: index.handler
+      Role: arn:aws:iam::187876827392:role/LabRole
+      Code:
+        ZipFile: |
+          import json
+          import boto3
+          import re
+          from datetime import datetime
+
+          sns_client = boto3.client('sns')
+
+          def lambda_handler(event, context):
+              user_data = json.loads(event['body'])
+              user_email = user_data['email']
+              
+              sanitized_email = sanitize_topic_name(user_email)
+              
+              topic_name = f'UserNotificationTopic_{sanitized_email}'
+              topic_arn = get_topic_arn(topic_name)
+              
+              if not topic_arn:
+                  return {
+                      'statusCode': 404,
+                      'body': json.dumps('User notification topic not found')
+                  }
+              
+              current_time = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')
+              
+              plain_text_message = f"Login Successful\n\nDear {user_email},\nYou have successfully logged into Dal Vacation Home on {current_time}."
+              
+              message_payload = {
+                  'default': 'Login successful!',
+                  'email': plain_text_message
+              }
+              
+              response = sns_client.publish(
+                  TopicArn=topic_arn,
+                  Message=json.dumps(message_payload),
+                  MessageStructure='json',
+                  Subject='Login Successful'
+              )
+              
+              return {
+                  'statusCode': 200,
+                  'body': json.dumps('Login successful!')
+              }
+
+            def get_topic_arn(topic_name):
+                response = sns_client.list_topics()
+                topics = response['Topics']
+                for topic in topics:
+                    if topic_name in topic['TopicArn']:
+                        return topic['TopicArn']
+                return None
+
+            def sanitize_topic_name(email):
+                return re.sub(r'[^a-zA-Z0-9_-]', '_', email)
+
+      Runtime: python3.12
+      MemorySize: 128
+      Timeout: 10
+
+  LoginFunctionUrl:
+    Type: AWS::Lambda::Url
+    Properties:
+      TargetFunctionArn: !GetAtt LoginFunction.Arn
+      AuthType: NONE
+      Cors:
+        AllowCredentials: false
+        AllowHeaders:
+          - content-type
+        AllowMethods:
+          - "*"
+        AllowOrigins:
+          - "*"
+        MaxAge: 0
+      InvokeMode: BUFFERED
+
+  SignUpFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: SignUpFunction
+      Handler: index.handler
+      Role: arn:aws:iam::187876827392:role/LabRole
+      Code:
+        ZipFile: |
+          import json
+          import boto3
+          import re
+
+          sns_client = boto3.client('sns')
+
+          def lambda_handler(event, context):
+              user_data = json.loads(event['body'])
+              user_email = user_data['email']
+              
+              sanitized_email = sanitize_topic_name(user_email)
+              
+              topic_name = f'UserNotificationTopic_{sanitized_email}'
+              topic_arn = get_or_create_topic(topic_name)
+              
+              subscription_arn = subscribe_email_to_topic(topic_arn, user_email)
+              
+              response = sns_client.publish(
+                  TopicArn=topic_arn,
+                  Message=json.dumps({'default': json.dumps(user_data)}),
+                  MessageStructure='json'
+              )
+              
+              return {
+                  'statusCode': 200,
+                  'body': json.dumps('Registration successful!')
+              }
+
+          def get_or_create_topic(topic_name):
+              response = sns_client.list_topics()
+              topics = response['Topics']
+              for topic in topics:
+                  if topic_name in topic['TopicArn']:
+                      return topic['TopicArn']
+              
+              response = sns_client.create_topic(Name=topic_name)
+              return response['TopicArn']
+
+          def subscribe_email_to_topic(topic_arn, email):
+              response = sns_client.subscribe(
+                  TopicArn=topic_arn,
+                  Protocol='email',
+                  Endpoint=email,
+                  ReturnSubscriptionArn=True 
+              )
+              return response['SubscriptionArn']
+
+          def sanitize_topic_name(email):
+              return re.sub(r'[^a-zA-Z0-9_-]', '_', email)
+      Runtime: python3.12
+      MemorySize: 128
+      Timeout: 10
+
+  SignUpFunctionUrl:
+    Type: AWS::Lambda::Url
+    Properties:
+      TargetFunctionArn: !GetAtt SignUpFunction.Arn
+      AuthType: NONE
+      Cors:
+        AllowCredentials: false
+        AllowHeaders:
+          - content-type
+        AllowMethods:
+          - "*"
+        AllowOrigins:
+          - "*"
+        MaxAge: 0
+      InvokeMode: BUFFERED
+
+  BookingConfirmationFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: BookingConfirmationFunction
+      Handler: index.handler
+      Role: arn:aws:iam::187876827392:role/LabRole
+      Code:
+        ZipFile: |
+          import json
+          import boto3
+          import re
+          from datetime import datetime
+
+          sns_client = boto3.client('sns')
+
+          def lambda_handler(event, context):
+              event_data = json.loads(event['body'])
+              event_type = event_data['event_type']
+              user_email = event_data['email']
+              
+              sanitized_email = sanitize_topic_name(user_email)
+              
+              topic_name = f'UserNotificationTopic_{sanitized_email}'
+              topic_arn = get_topic_arn(topic_name)
+              
+              if not topic_arn:
+                  return {
+                      'statusCode': 404,
+                      'body': json.dumps('User notification topic not found')
+                  }
+              
+              current_time = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')
+              
+              if event_type == 'booking_confirmation':
+                  booking_id = event_data['booking_id']
+                  booking_details = event_data['booking_details']
+                  plain_text_message = f"""
+                  Booking Confirmation
+                  
+                  Dear {user_email},
+                  
+                  Your booking with ID {booking_id} has been successfully confirmed on {current_time}.
+                  
+                  Booking Details:
+                  {booking_details}
+                  """
+                  subject = 'Booking Confirmation'
+              elif event_type == 'booking_failure':
+                  booking_id = event_data['booking_id']
+                  plain_text_message = f"""
+                  Booking Failure
+                  
+                  Dear {user_email},
+                  
+                  Unfortunately, your booking with ID {booking_id} has failed on {current_time}.
+                  
+                  """
+                  subject = 'Booking Failure'
+              else:
+                  return {
+                      'statusCode': 400,
+                      'body': json.dumps('Invalid event type')
+                  }
+              
+              message_payload = {
+                  'default': 'Notification!',
+                  'email': plain_text_message
+              }
+              
+              response = sns_client.publish(
+                  TopicArn=topic_arn,
+                  Message=json.dumps(message_payload),
+                  MessageStructure='json',
+                  Subject=subject
+              )
+              
+              return {
+                  'statusCode': 200,
+                  'body': json.dumps('Notification sent!')
+              }
+
+          def get_topic_arn(topic_name):
+              response = sns_client.list_topics()
+              topics = response['Topics']
+              for topic in topics:
+                  if topic_name in topic['TopicArn']:
+                      return topic['TopicArn']
+              return None
+
+          def sanitize_topic_name(email):
+              return re.sub(r'[^a-zA-Z0-9_-]', '_', email)
+      Runtime: python3.12
+      MemorySize: 128
+      Timeout: 10
+
+  BookingConfirmationUrl:
+    Type: AWS::Lambda::Url
+    Properties:
+      TargetFunctionArn: !GetAtt BookingConfirmationFunction.Arn
+      AuthType: NONE
+      Cors:
+        AllowCredentials: false
+        AllowHeaders:
+          - content-type
+        AllowMethods:
+          - "*"
+        AllowOrigins:
+          - "*"
+        MaxAge: 0
+      InvokeMode: BUFFERED
+
+  RoomBookingApprovalFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: RoomBookingApprovalFunction
+      Handler: index.handler
+      Role: arn:aws:iam::187876827392:role/LabRole
+      Code:
+        ZipFile: |
+          import json
+          import boto3
+          import re
+          from datetime import datetime
+
+          sns_client = boto3.client('sns')
+
+          def lambda_handler(event, context):
+              for record in event['Records']:
+                  try:
+                      message = json.loads(record['body'])
+                      print(f"Processing message: {message}")
+                      message = json.loads(message['Message'])
+                      
+                      if 'booking_id' not in message or 'email' not in message:
+                          print("Missing booking_id or email in message")
+                          continue
+                      
+                      booking_id = message['booking_id']
+                      user_email = message['email']
+                      
+                      sanitized_email = sanitize_topic_name(user_email)
+                      
+                      topic_name = f'UserNotificationTopic_{sanitized_email}'
+                      topic_arn = get_topic_arn(topic_name)
+                      
+                      if not topic_arn:
+                          print(f"User notification topic not found for {user_email}")
+                          continue
+                      
+                      approval_status = approve_booking(booking_id)
+                      
+                      current_time = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')
+                      
+                      if approval_status == "approved":
+                          message_body = f"""
+                          Dear {user_email},
+                          
+                          Your booking with ID {booking_id} has been successfully Approved on {current_time}.
+                          """
+                          subject = 'Booking Approval'
+                      else:
+                          message_body = f"""
+                          
+                          Dear {user_email},
+                          
+                          Unfortunately, your booking with ID {booking_id} has failed on {current_time}.
+                          """
+                          subject = 'Booking Failure'
+                      
+                      message_payload = {
+                          'default': 'Notification!',
+                          'email': message_body
+                      }
+                      
+                      response = sns_client.publish(
+                          TopicArn=topic_arn,
+                          Message=json.dumps(message_payload),
+                          MessageStructure='json',
+                          Subject=subject
+                      )
+                      
+                      print(f"Notification sent to {user_email} with status {approval_status}")
+                  except Exception as e:
+                      print(f"Error processing record: {e}")
+              
+              return {
+                  'statusCode': 200,
+                  'body': json.dumps('Booking approval process completed')
+              }
+
+          def get_topic_arn(topic_name):
+              response = sns_client.list_topics()
+              topics = response['Topics']
+              for topic in topics:
+                  if topic_name in topic['TopicArn']:
+                      return topic['TopicArn']
+              return None
+
+          def sanitize_topic_name(email):
+              return re.sub(r'[^a-zA-Z0-9_-]', '_', email)
+
+          def approve_booking(booking_id):
+              return "approved"  # or "rejected"
+
+      Runtime: python3.12
+      MemorySize: 128
+      Timeout: 10
+
+  RoomBookingApprovalUrl:
+    Type: AWS::Lambda::Url
+    Properties:
+      TargetFunctionArn: !GetAtt RoomBookingApprovalFunction.Arn
+      AuthType: NONE
+      Cors:
+        AllowCredentials: false
+        AllowHeaders:
+          - content-type
+        AllowMethods:
+          - "*"
+        AllowOrigins:
+          - "*"
+        MaxAge: 0
+      InvokeMode: BUFFERED
+
+  BookingQueue:
+    Type: AWS::SQS::Queue
+    Properties:
+      QueueName: BookingQueue
+
+  RoomBookingTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: RoomBookingTopic
+
+  QueueSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Endpoint: !GetAtt BookingQueue.Arn
+      Protocol: sqs
+      TopicArn: !Ref RoomBookingTopic
+
+  QueuePolicy:
+    Type: AWS::SQS::QueuePolicy
+    Properties:
+      Queues:
+        - !Ref BookingQueue
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal: "*"
+            Action: "SQS:SendMessage"
+            Resource: !GetAtt BookingQueue.Arn
+            Condition:
+              ArnEquals:
+                aws:SourceArn: !Ref RoomBookingTopic
+
+  LambdaTrigger:
+    Type: AWS::Lambda::EventSourceMapping
+    Properties:
+      EventSourceArn: !GetAtt BookingQueue.Arn
+      FunctionName: !GetAtt RoomBookingApprovalFunction.Arn
+      Enabled: true
+      BatchSize: 10
+
+Outputs:
+  LoginFunctionUrlOutput:
+    Description: "The URL of the Login function"
+    Value: !GetAtt LoginFunctionUrl.FunctionUrl
+
+  SignUpFunctionUrlOutput:
+    Description: "The URL of the Sign up function"
+    Value: !GetAtt SignUpFunctionUrl.FunctionUrl
+
+  BookingConfirmationUrlOutput:
+    Description: "The URL of the Booking Confirmation function"
+    Value: !GetAtt BookingConfirmationUrl.FunctionUrl
+
+  RoomBookingApprovalUrlOutput:
+    Description: "The URL of the Booking Approval function"
+    Value: !GetAtt RoomBookingApprovalUrl.FunctionUrl

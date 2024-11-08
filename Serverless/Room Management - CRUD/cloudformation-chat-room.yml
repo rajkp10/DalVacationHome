@@ -1,0 +1,636 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Resources:
+  RoomsTable:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      TableName: "Rooms1"
+      AttributeDefinitions:
+        - AttributeName: "id"
+          AttributeType: "S"
+      KeySchema:
+        - AttributeName: "id"
+          KeyType: "HASH"
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+
+  MessagesTable:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      TableName: "Messages1"
+      AttributeDefinitions:
+        - AttributeName: "id"
+          AttributeType: "S"
+      KeySchema:
+        - AttributeName: "id"
+          KeyType: "HASH"
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+
+  WebSocketConnectionsTable:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      TableName: "WebSocketConnections1"
+      AttributeDefinitions:
+        - AttributeName: "connectionId"
+          AttributeType: "S"
+      KeySchema:
+        - AttributeName: "connectionId"
+          KeyType: "HASH"
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+
+  AWSSDKLambdaLayer:
+    Type: "AWS::Lambda::LayerVersion"
+    Properties:
+      LayerName: "aws-sdk"
+      Content:
+        S3Bucket: "dalvacationhome-5410"
+        S3Key: "layers/aws-sdk-layer.zip"
+      CompatibleRuntimes:
+        - "nodejs20.x"
+
+  AddRoomFunction:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      FunctionName: "addRoom1"
+      Runtime: "nodejs20.x"
+      Architectures:
+        - "x86_64"
+      Handler: "index.handler"
+      Role: !Sub "arn:aws:iam::728868923072:role/LabRole"
+      Code:
+        S3Bucket: "dalvacationhome-5410"
+        S3Key: "lambdas/addRoom.zip"
+
+  GetRoomFunction:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      FunctionName: "getRoom1"
+      Runtime: "nodejs20.x"
+      Architectures:
+        - "x86_64"
+      Handler: "index.handler"
+      Role: !Sub "arn:aws:iam::728868923072:role/LabRole"
+      Code:
+        S3Bucket: "dalvacationhome-5410"
+        S3Key: "lambdas/getRoom.zip"
+
+  GetAllRoomsFunction:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      FunctionName: "getAllRooms1"
+      Runtime: "nodejs20.x"
+      Architectures:
+        - "x86_64"
+      Handler: "index.handler"
+      Role: !Sub "arn:aws:iam::728868923072:role/LabRole"
+      Code:
+        S3Bucket: "dalvacationhome-5410"
+        S3Key: "lambdas/getAllRooms.zip"
+
+  DeleteRoomFunction:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      FunctionName: "deleteRoom1"
+      Runtime: "nodejs20.x"
+      Architectures:
+        - "x86_64"
+      Handler: "index.handler"
+      Role: !Sub "arn:aws:iam::728868923072:role/LabRole"
+      Code:
+        S3Bucket: "dalvacationhome-5410"
+        S3Key: "lambdas/deleteRoom.zip"
+
+  GetAgentRoomsFunction:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      FunctionName: "getAgentRooms1"
+      Runtime: "nodejs20.x"
+      Architectures:
+        - "x86_64"
+      Handler: "index.handler"
+      Role: !Sub "arn:aws:iam::728868923072:role/LabRole"
+      Code:
+        S3Bucket: "dalvacationhome-5410"
+        S3Key: "lambdas/getAgentRooms.zip"
+
+  UpdateRoomFunction:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      FunctionName: "updateRoom1"
+      Runtime: "nodejs20.x"
+      Architectures:
+        - "x86_64"
+      Handler: "index.handler"
+      Role: !Sub "arn:aws:iam::728868923072:role/LabRole"
+      Code:
+        S3Bucket: "dalvacationhome-5410"
+        S3Key: "lambdas/updateRoom.zip"
+
+  FetchChatFunction:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      FunctionName: "fetchChat1"
+      Runtime: "nodejs20.x"
+      Architectures:
+        - "x86_64"
+      Handler: "index.handler"
+      Role: !Sub "arn:aws:iam::728868923072:role/LabRole"
+      Code:
+        S3Bucket: "dalvacationhome-5410"
+        S3Key: "lambdas/fetchChat.zip"
+
+  FetchMessagesFunction:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      FunctionName: "fetchMessages1"
+      Runtime: "nodejs20.x"
+      Architectures:
+        - "x86_64"
+      Handler: "index.handler"
+      Role: !Sub "arn:aws:iam::728868923072:role/LabRole"
+      Code:
+        S3Bucket: "dalvacationhome-5410"
+        S3Key: "lambdas/fetchMessages.zip"
+
+  SubscriberFunction:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      FunctionName: "Subscriber1"
+      Runtime: "nodejs20.x"
+      Architectures:
+        - "x86_64"
+      Handler: "index.handler"
+      Role: !Sub "arn:aws:iam::728868923072:role/LabRole"
+      Code:
+        S3Bucket: "dalvacationhome-5410"
+        S3Key: "lambdas/Subscriber.zip"
+
+  ConnectWebSocketFunction:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      FunctionName: "connectWebSocket1"
+      Runtime: "nodejs20.x"
+      Architectures:
+        - "x86_64"
+      Handler: "index.handler"
+      Role: !Sub "arn:aws:iam::728868923072:role/LabRole"
+      Code:
+        S3Bucket: "dalvacationhome-5410"
+        S3Key: "lambdas/connectWebSocket.zip"
+      Layers:
+        - !Ref AWSSDKLambdaLayer
+
+  DisconnectWebSocketFunction:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      FunctionName: "disconnectWebSocket1"
+      Runtime: "nodejs20.x"
+      Architectures:
+        - "x86_64"
+      Handler: "index.handler"
+      Role: !Sub "arn:aws:iam::728868923072:role/LabRole"
+      Code:
+        S3Bucket: "dalvacationhome-5410"
+        S3Key: "lambdas/disconnectWebSocket.zip"
+      Layers:
+        - !Ref AWSSDKLambdaLayer
+
+  SendMessageWebSocketFunction:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      FunctionName: "sendMessageWebSocket1"
+      Runtime: "nodejs20.x"
+      Architectures:
+        - "x86_64"
+      Handler: "index.handler"
+      Role: !Sub "arn:aws:iam::728868923072:role/LabRole"
+      Code:
+        S3Bucket: "dalvacationhome-5410"
+        S3Key: "lambdas/sendMessageWebSocket.zip"
+      Layers:
+        - !Ref AWSSDKLambdaLayer
+
+  ApiGateway:
+    Type: "AWS::ApiGateway::RestApi"
+    Properties:
+      Name: "RoomApi"
+      EndpointConfiguration:
+        Types:
+          - REGIONAL
+
+  RoomResource:
+    Type: "AWS::ApiGateway::Resource"
+    Properties:
+      ParentId: !GetAtt ApiGateway.RootResourceId
+      PathPart: "room"
+      RestApiId: !Ref ApiGateway
+
+  RoomGetMethod:
+    Type: "AWS::ApiGateway::Method"
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: "GET"
+      ResourceId: !Ref RoomResource
+      RestApiId: !Ref ApiGateway
+      RequestParameters:
+        method.request.querystring.roomId: true
+      Integration:
+        IntegrationHttpMethod: "POST"
+        Type: "AWS"
+        Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetRoomFunction.Arn}/invocations"
+        IntegrationResponses:
+          - StatusCode: "200"
+        RequestTemplates:
+          application/json: |
+            {
+              "queryStringParameters": {
+                #foreach($key in $input.params().querystring.keySet())
+                  "$key": "$input.params().querystring.get($key)"#if($foreach.hasNext()),#end
+                #end
+              }
+            }
+      MethodResponses:
+        - StatusCode: "200"
+
+  RoomsResource:
+    Type: "AWS::ApiGateway::Resource"
+    Properties:
+      ParentId: !GetAtt ApiGateway.RootResourceId
+      PathPart: "rooms"
+      RestApiId: !Ref ApiGateway
+
+  RoomsGetMethod:
+    Type: "AWS::ApiGateway::Method"
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: "GET"
+      ResourceId: !Ref RoomsResource
+      RestApiId: !Ref ApiGateway
+      Integration:
+        IntegrationHttpMethod: "POST"
+        Type: "AWS"
+        Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetAllRoomsFunction.Arn}/invocations"
+        IntegrationResponses:
+          - StatusCode: "200"
+      MethodResponses:
+        - StatusCode: "200"
+
+  AddResource:
+    Type: "AWS::ApiGateway::Resource"
+    Properties:
+      ParentId: !Ref RoomsResource
+      PathPart: "add"
+      RestApiId: !Ref ApiGateway
+
+  AddPostMethod:
+    Type: "AWS::ApiGateway::Method"
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: "POST"
+      ResourceId: !Ref AddResource
+      RestApiId: !Ref ApiGateway
+      Integration:
+        IntegrationHttpMethod: "POST"
+        Type: "AWS"
+        Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${AddRoomFunction.Arn}/invocations"
+        IntegrationResponses:
+          - StatusCode: "200"
+            ResponseTemplates:
+              application/json: ""
+      MethodResponses:
+        - StatusCode: "200"
+          ResponseModels:
+            application/json: "Empty"
+
+  UpdateResource:
+    Type: "AWS::ApiGateway::Resource"
+    Properties:
+      ParentId: !Ref RoomsResource
+      PathPart: "update"
+      RestApiId: !Ref ApiGateway
+
+  UpdatePutMethod:
+    Type: "AWS::ApiGateway::Method"
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: "PUT"
+      ResourceId: !Ref UpdateResource
+      RestApiId: !Ref ApiGateway
+      Integration:
+        IntegrationHttpMethod: "POST"
+        Type: "AWS"
+        Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${UpdateRoomFunction.Arn}/invocations"
+        IntegrationResponses:
+          - StatusCode: "200"
+            ResponseTemplates:
+              application/json: ""
+      MethodResponses:
+        - StatusCode: "200"
+          ResponseModels:
+            application/json: "Empty"
+
+  DeleteResource:
+    Type: "AWS::ApiGateway::Resource"
+    Properties:
+      ParentId: !Ref RoomsResource
+      PathPart: "delete"
+      RestApiId: !Ref ApiGateway
+
+  DeleteRoomMethod:
+    Type: "AWS::ApiGateway::Method"
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: "DELETE"
+      ResourceId: !Ref DeleteResource
+      RestApiId: !Ref ApiGateway
+      RequestParameters:
+        method.request.querystring.roomId: true
+      Integration:
+        IntegrationHttpMethod: "POST"
+        Type: "AWS"
+        Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${DeleteRoomFunction.Arn}/invocations"
+        IntegrationResponses:
+          - StatusCode: "200"
+            ResponseTemplates:
+              application/json: ""
+        RequestTemplates:
+          application/json: |
+            {
+              "queryStringParameters": {
+                #foreach($key in $input.params().querystring.keySet())
+                  "$key": "$input.params().querystring.get($key)"#if($foreach.hasNext()),#end
+                #end
+              }
+            }
+      MethodResponses:
+        - StatusCode: "200"
+          ResponseModels:
+            application/json: "Empty"
+
+  AgentResource:
+    Type: "AWS::ApiGateway::Resource"
+    Properties:
+      ParentId: !Ref RoomsResource
+      PathPart: "agent"
+      RestApiId: !Ref ApiGateway
+
+  AgentGetMethod:
+    Type: "AWS::ApiGateway::Method"
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: "GET"
+      ResourceId: !Ref AgentResource
+      RestApiId: !Ref ApiGateway
+      RequestParameters:
+        method.request.querystring.roomId: true
+      Integration:
+        IntegrationHttpMethod: "POST"
+        Type: "AWS"
+        Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetAgentRoomsFunction.Arn}/invocations"
+        IntegrationResponses:
+          - StatusCode: "200"
+        RequestTemplates:
+          application/json: |
+            {
+              "queryStringParameters": {
+                #foreach($key in $input.params().querystring.keySet())
+                  "$key": "$input.params().querystring.get($key)"#if($foreach.hasNext()),#end
+                #end
+              }
+            }
+      MethodResponses:
+        - StatusCode: "200"
+
+  ChatResource:
+    Type: "AWS::ApiGateway::Resource"
+    Properties:
+      ParentId: !GetAtt ApiGateway.RootResourceId
+      PathPart: "chat"
+      RestApiId: !Ref ApiGateway
+
+  ChatPostMethod:
+    Type: "AWS::ApiGateway::Method"
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: "POST"
+      ResourceId: !Ref ChatResource
+      RestApiId: !Ref ApiGateway
+      Integration:
+        IntegrationHttpMethod: "POST"
+        Type: "AWS"
+        Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${FetchChatFunction.Arn}/invocations"
+        IntegrationResponses:
+          - StatusCode: "200"
+      MethodResponses:
+        - StatusCode: "200"
+
+  MessagesResource:
+    Type: "AWS::ApiGateway::Resource"
+    Properties:
+      ParentId: !Ref ChatResource
+      PathPart: "messages"
+      RestApiId: !Ref ApiGateway
+
+  MessagesGetMethod:
+    Type: "AWS::ApiGateway::Method"
+    Properties:
+      AuthorizationType: NONE
+      HttpMethod: "GET"
+      ResourceId: !Ref MessagesResource
+      RestApiId: !Ref ApiGateway
+      RequestParameters:
+        method.request.querystring.messageId: true
+      Integration:
+        IntegrationHttpMethod: "POST"
+        Type: "AWS"
+        Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${FetchMessagesFunction.Arn}/invocations"
+        IntegrationResponses:
+          - StatusCode: "200"
+        RequestTemplates:
+          application/json: |
+            {
+              "queryStringParameters": {
+                #foreach($key in $input.params().querystring.keySet())
+                  "$key": "$input.params().querystring.get($key)"#if($foreach.hasNext()),#end
+                #end
+              }
+            }
+      MethodResponses:
+        - StatusCode: "200"
+
+  ApiDeployment:
+    Type: "AWS::ApiGateway::Deployment"
+    DependsOn:
+      - RoomGetMethod
+      - RoomsGetMethod
+      - AddPostMethod
+      - UpdatePutMethod
+      - DeleteRoomMethod
+      - AgentGetMethod
+    Properties:
+      RestApiId: !Ref ApiGateway
+      StageName: "prod"
+
+  WebSocketApi:
+    Type: "AWS::ApiGatewayV2::Api"
+    Properties:
+      Name: "webSocketApi"
+      ProtocolType: "WEBSOCKET"
+      RouteSelectionExpression: "$request.body.action"
+
+  ConnectRoute:
+    Type: "AWS::ApiGatewayV2::Route"
+    Properties:
+      ApiId: !Ref WebSocketApi
+      RouteKey: "$connect"
+      AuthorizationType: NONE
+      Target: !Sub "integrations/${ConnectIntegration}"
+
+  DisconnectRoute:
+    Type: "AWS::ApiGatewayV2::Route"
+    Properties:
+      ApiId: !Ref WebSocketApi
+      RouteKey: "$disconnect"
+      AuthorizationType: NONE
+      Target: !Sub "integrations/${DisconnectIntegration}"
+
+  DefaultRoute:
+    Type: "AWS::ApiGatewayV2::Route"
+    Properties:
+      ApiId: !Ref WebSocketApi
+      RouteKey: "$default"
+      AuthorizationType: NONE
+      Target: !Sub "integrations/${DefaultIntegration}"
+
+  ConnectIntegration:
+    Type: "AWS::ApiGatewayV2::Integration"
+    Properties:
+      ApiId: !Ref WebSocketApi
+      IntegrationType: "AWS_PROXY"
+      IntegrationUri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ConnectWebSocketFunction.Arn}/invocations"
+
+  DisconnectIntegration:
+    Type: "AWS::ApiGatewayV2::Integration"
+    Properties:
+      ApiId: !Ref WebSocketApi
+      IntegrationType: "AWS_PROXY"
+      IntegrationUri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${DisconnectWebSocketFunction.Arn}/invocations"
+
+  DefaultIntegration:
+    Type: "AWS::ApiGatewayV2::Integration"
+    Properties:
+      ApiId: !Ref WebSocketApi
+      IntegrationType: "AWS_PROXY"
+      IntegrationUri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${SendMessageWebSocketFunction.Arn}/invocations"
+
+  WebSocketDeployment:
+    Type: "AWS::ApiGatewayV2::Deployment"
+    Properties:
+      ApiId: !Ref WebSocketApi
+    DependsOn:
+      - ConnectRoute
+      - DisconnectRoute
+      - DefaultRoute
+
+  WebSocketStage:
+    Type: "AWS::ApiGatewayV2::Stage"
+    Properties:
+      ApiId: !Ref WebSocketApi
+      DeploymentId: !Ref WebSocketDeployment
+      StageName: "prod"
+
+  LambdaApiGatewayInvokeRoleAddRoom:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      Action: "lambda:InvokeFunction"
+      FunctionName: !Ref AddRoomFunction
+      Principal: "apigateway.amazonaws.com"
+
+  LambdaApiGatewayInvokeRoleGetRoom:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      Action: "lambda:InvokeFunction"
+      FunctionName: !Ref GetRoomFunction
+      Principal: "apigateway.amazonaws.com"
+
+  LambdaApiGatewayInvokeRoleGetAllRooms:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      Action: "lambda:InvokeFunction"
+      FunctionName: !Ref GetAllRoomsFunction
+      Principal: "apigateway.amazonaws.com"
+
+  LambdaApiGatewayInvokeRoleDeleteRoom:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      Action: "lambda:InvokeFunction"
+      FunctionName: !Ref DeleteRoomFunction
+      Principal: "apigateway.amazonaws.com"
+
+  LambdaApiGatewayInvokeRoleUpdateRoom:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      Action: "lambda:InvokeFunction"
+      FunctionName: !Ref UpdateRoomFunction
+      Principal: "apigateway.amazonaws.com"
+
+  LambdaApiGatewayInvokeRoleGetAgentRooms:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      Action: "lambda:InvokeFunction"
+      FunctionName: !Ref GetAgentRoomsFunction
+      Principal: "apigateway.amazonaws.com"
+
+  LambdaApiGatewayInvokeRoleFetchChat:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      Action: "lambda:InvokeFunction"
+      FunctionName: !Ref FetchChatFunction
+      Principal: "apigateway.amazonaws.com"
+
+  LambdaApiGatewayInvokeRoleFetchMessages:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      Action: "lambda:InvokeFunction"
+      FunctionName: !Ref FetchMessagesFunction
+      Principal: "apigateway.amazonaws.com"
+
+  LambdaApiGatewayInvokeRoleSubscriber:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      Action: "lambda:InvokeFunction"
+      FunctionName: !Ref SubscriberFunction
+      Principal: "apigateway.amazonaws.com"
+
+  LambdaApiGatewayInvokeRoleConnectWebSocket:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      Action: "lambda:InvokeFunction"
+      FunctionName: !Ref ConnectWebSocketFunction
+      Principal: "apigateway.amazonaws.com"
+
+  LambdaApiGatewayInvokeRoleDisconnectWebSocket:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      Action: "lambda:InvokeFunction"
+      FunctionName: !Ref DisconnectWebSocketFunction
+      Principal: "apigateway.amazonaws.com"
+
+  LambdaApiGatewayInvokeRoleSendMessageWebSocket:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      Action: "lambda:InvokeFunction"
+      FunctionName: !Ref SendMessageWebSocketFunction
+      Principal: "apigateway.amazonaws.com"
+
+Outputs:
+  ApiUrl:
+    Description: "URL of the API Gateway"
+    Value: !Sub "https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/prod"
+  WebSocketApiUrl:
+    Description: "URL of the WebSocket API Gateway"
+    Value: !Sub "wss://${WebSocketApi}.execute-api.${AWS::Region}.amazonaws.com/prod"

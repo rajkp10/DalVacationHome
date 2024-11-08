@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "csci5410project-425016",
+  "private_key_id": "1807199ab4fc6580407bc829c6eb0a2d0bbaf387",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQC+GWg/+qIgPw0G\ne1nhCBItqu56TNFOjiBjsV6F+JYvcT4HoCKTAn5LEVbcofk4eqGW57g466qH6nuT\nTShe3ou8pfFHK0y5ieMkmu0RT8kGJOr7iv6Le9M8C/UdfsfrIGwYlmLfVLFeFUwp\nDUlhKJVoIlqbnf6g2WYKvGethm81vsq3vYgty+ynWYaDCn/VmsWY7KNoa2jfBB3A\njXogw7W+C8uDMCC6RHOV/+wlEGGP6aDGo0SC41lLMM5i09sn+CskttazQFJ3EWre\nInHGnT9tX33W1vvjJrWRR06HlVJgwyK+Dd+zokh82IJDX09+YZ1TD316T6t/qZLv\nq4bIMANRAgMBAAECggEAAS/k7gNZaFSkdu4lw0k63dSjrRlWNESgcKbupW0GOREe\nt0r5dEwPcFYRIgsT5JWldS0Iwjg8hiFBeMvCTQdcPYcWwOBFGCKDi9q40MMcCQEJ\ng50cVlAlY0pa0z6TroTzD9s+jlD305PT+CyoUOZBOpd+U9ryeFwrLjV7e0Kr5pzB\n4hFatpkNkBa7aO9bEx3JrLGh9uLL3NyuvOC8uXts9OgRh9jIwyheW2CKpQcWfJv3\nSI2FTLI05UCxel5K/0GQPyRfsYZEcMkboSJKtXZrMYQPXBK5Lkz+YN9dPnwzf7jI\nedcUseWL82/Tqp78FYFjFPOFVR1RL55gd60mvDGgrQKBgQDrD4rttBrQfxDvTAMh\nQq14pMrFSNzQ3+6a+y1EhJjKhX+5m96aoT8MPUlhHZsNjNV2w1hMprMJN2E5Ty6g\n1MKLPy5IUxRniMwY0WHvckKaMJpPIVBPO66uKagsNNKutA37AdPAAxMu4HhPRjcp\nFKgaGsbV6Vz2b0tuLKV6Z6aNtQKBgQDPCImwjir9Gs50tMBdfyb7BSRtW+oUOOrp\neivBv7qsda1rQGqiIHIUx1b6pMqMV95HZrgPVqIaTo453dYajGhykrsrwt/H3iIH\n7dZYQnJRdOjqcUp219avccqJKVpXaFkT9C1HRNDgYn8ZN9zNH8X3+7L5bTLzCDJN\nY2YfjYFArQKBgQDdGfCXKJs0VOFMBZbIGVzspy1oJuI1wv1AYFUzJvpFPQ9oOlpH\n3rZcP+We6Oco9rjvjk2nRAISADp+WqHEfHxF2HcjZqpBvOYlzgWt4i8Ns/vhxLcy\n4DOt9NcQRduKoyinWw+fhATuSgxAnQ5ToO+CJn+zRF/CGeu8xVgd7BM5JQKBgC8r\nrtN/UOQiO2/zzvB+jA8deNNB4e+BmGRh5Z5bZNjuZvjM0H7oDZYWZQbujQe07Xwv\nNzincH+17knY9XNPEm0oaWTrHbmYLwDHe9LYMNvGW1svPNwfCVcoAhGGToMjz0fw\nlnBqiXzWdEb2p2RFHQIHYxvZeYZOE8f2IcqGnzBxAoGBAJDjKE5uxlCmmcOjyaI0\nNNGXgQCARdANSg8hKAYEArEysHlC972Ab2L6D4M3sQ0EFKQRBgv8RLmj4MaJXwD2\ni1hXvqIzvkduYVzk0sNJOv283p3WY/NLLKTmg1NdZc0KjTPBdbRLrg8tV9UeDQjK\nlb98r6/W2t+DmAAOZaI/4iGL\n-----END PRIVATE KEY-----\n",
+  "client_email": "nlp-service-account@csci5410project-425016.iam.gserviceaccount.com",
+  "client_id": "101352395510097387198",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/nlp-service-account%40csci5410project-425016.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}

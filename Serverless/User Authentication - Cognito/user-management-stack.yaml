@@ -1,0 +1,355 @@
+AWSTemplateFormatVersion: "2010-09-09"
+
+Parameters:
+  LambdaExecutionRoleArn:
+    Description: "ARN of the IAM role for executing Lambda functions."
+    Type: String
+  GCPServiceAccountKeyBase64:
+    Type: String
+    Description: Base64-encoded GCP service account key
+  GCPProjectId:
+    Type: String
+    Description: GCP project ID
+
+Resources:
+  UsersTable:
+    Type: "AWS::DynamoDB::Table"
+    Properties:
+      TableName: "Users"
+      AttributeDefinitions:
+        - AttributeName: "userId"
+          AttributeType: "S"
+      KeySchema:
+        - AttributeName: "userId"
+          KeyType: "HASH"
+      ProvisionedThroughput:
+        ReadCapacityUnits: 5
+        WriteCapacityUnits: 5
+      StreamSpecification:
+        StreamViewType: "NEW_IMAGE"
+
+  UserPool:
+    Type: "AWS::Cognito::UserPool"
+    Properties:
+      UserPoolName: "UserAuthenticationPool"
+      Schema:
+        - Name: "email"
+          AttributeDataType: "String"
+          Mutable: true
+          Required: true
+        - Name: "question"
+          AttributeDataType: "String"
+          Mutable: true
+        - Name: "answer"
+          AttributeDataType: "String"
+          Mutable: true
+        - Name: "cipherKey"
+          AttributeDataType: "Number"
+          Mutable: true
+        - Name: "role"
+          AttributeDataType: "String"
+          Mutable: true
+      AutoVerifiedAttributes:
+        - "email"
+      Policies:
+        PasswordPolicy:
+          MinimumLength: 8
+          RequireUppercase: true
+          RequireLowercase: true
+          RequireNumbers: true
+          RequireSymbols: true
+      LambdaConfig:
+        PostConfirmation: !GetAtt StoreDetailsPostSignUpFunction.Arn
+
+  UserPoolClient:
+    Type: "AWS::Cognito::UserPoolClient"
+    Properties:
+      ClientName: "UserPoolClient"
+      UserPoolId: !Ref UserPool
+      ExplicitAuthFlows:
+        - ADMIN_NO_SRP_AUTH
+
+  GCPBigQueryLayer:
+    Type: "AWS::Lambda::LayerVersion"
+    Properties:
+      LayerName: "GCPBigQueryLayer"
+      Content:
+        S3Bucket: "layers-ubaid"
+        S3Key: "gcp-big-query-layer.zip"
+      CompatibleRuntimes:
+        - "nodejs20.x"
+
+  GCPBigQueryInjectFunction:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      FunctionName: "GCPBigQueryInject"
+      Handler: "index.handler"
+      Role: !Ref LambdaExecutionRoleArn
+      Code:
+        ZipFile: |
+          import {BigQuery} from "@google-cloud/bigquery";
+          import fs from "fs";
+
+          export const handler = async (event) => {
+            console.log(event.Records[0].dynamodb);
+            const base64Key = process.env.GCP_SERVICE_ACCOUNT_KEY_BASE64;
+            const keyContent = Buffer.from(base64Key, 'base64').toString('utf-8');
+            
+            const keyFilename = '/tmp/service-account-key.json';
+            fs.writeFileSync(keyFilename, keyContent);
+
+            const bigquery = new BigQuery({
+              keyFilename: keyFilename,
+              projectId: process.env.GCP_PROJECT_ID
+            });
+            
+            const datasetId = 'loginStatistics';
+            const tableId = 'LoginDetails';
+            
+            const rows = event.Records.map(record => {
+              if (record.eventName === 'INSERT') {
+                return {
+                  email: record.dynamodb.NewImage.userId.S,
+                  role: record.dynamodb.NewImage.role.S,
+                };
+              }
+            }).filter(row => row);
+
+            try{
+              if (rows.length > 0) {
+                await bigquery.dataset(datasetId).table(tableId).insert(rows);
+                console.log(`Inserted ${rows.length} rows into BigQuery`);
+              }
+            }catch(error){
+              console.error(error);
+              return {
+                statusCode: 500,
+                body: JSON.stringify({ message: 'Error inserting data'}),
+              };
+            }
+            
+            const response = {
+              statusCode: 200,
+              body: JSON.stringify({ message: 'Data inserted successfully' }),
+            };
+            return response;
+          };
+
+      Runtime: "nodejs20.x"
+      Layers:
+        - !Ref GCPBigQueryLayer
+      Environment:
+        Variables:
+          GCP_SERVICE_ACCOUNT_KEY_BASE64: !Ref GCPServiceAccountKeyBase64
+          GCP_PROJECT_ID: !Ref GCPProjectId
+
+  GCPBigQueryInjectEventSourceMapping:
+    Type: "AWS::Lambda::EventSourceMapping"
+    Properties:
+      BatchSize: 5
+      EventSourceArn: !GetAtt UsersTable.StreamArn
+      FunctionName: !Ref GCPBigQueryInjectFunction
+      StartingPosition: "TRIM_HORIZON"
+
+  GCPBigQueryInjectPermission:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      FunctionName: !Ref GCPBigQueryInjectFunction
+      Action: "lambda:InvokeFunction"
+      Principal: "dynamodb.amazonaws.com"
+      SourceArn: !GetAtt UsersTable.StreamArn
+
+  StoreDetailsPostSignUpFunction:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      FunctionName: "StoreDetailsPostSignUp"
+      Handler: "index.handler"
+      Role: !Ref LambdaExecutionRoleArn
+      Code:
+        ZipFile: |
+          import boto3
+          from botocore.exceptions import ClientError
+
+          dynamodb = boto3.resource("dynamodb")
+          table = dynamodb.Table("Users")
+
+
+          def lambda_handler(event, context):
+              user_id = event["request"]["userAttributes"]["email"]  # Use email as the userId
+              custom_question = event["request"]["userAttributes"].get("custom:question")
+              custom_answer = event["request"]["userAttributes"].get("custom:answer")
+              cipher_key = event["request"]["userAttributes"].get("custom:cipherKey")
+              role = event["request"]["userAttributes"].get("custom:role")
+
+              item = {
+                  "userId": user_id,  # Use email as the userId
+                  "customQuestion": custom_question,
+                  "customAnswer": custom_answer,
+                  "cipherKey": cipher_key,
+                  "role": role,
+              }
+
+              try:
+                  table.put_item(Item=item)
+                  print(f"User details for {user_id} stored successfully.")
+              except ClientError as e:
+                  print(f"Error storing user details: {e.response['Error']['Message']}")
+
+              return event
+
+      Runtime: "python3.12"
+  StoreDetailsPostSignUpPermission:
+    Type: "AWS::Lambda::Permission"
+    Properties:
+      FunctionName: !Ref StoreDetailsPostSignUpFunction
+      Action: "lambda:InvokeFunction"
+      Principal: "cognito-idp.amazonaws.com"
+      SourceArn: !GetAtt UserPool.Arn
+
+  GetUserDetailsFunction:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      FunctionName: "GetUserDetails"
+      Handler: "index.handler"
+      Role: !Ref LambdaExecutionRoleArn
+      Code:
+        ZipFile: |
+          import json
+          import boto3
+          import logging
+          from botocore.exceptions import ClientError
+
+          # Configure logging
+          logger = logging.getLogger()
+          logger.setLevel(logging.INFO)
+
+          dynamodb = boto3.resource("dynamodb")
+          table = dynamodb.Table("Users")
+
+
+          def lambda_handler(event, context):
+              logger.info("Received event: %s", json.dumps(event))
+
+              # Parse the body to get the userId
+              try:
+                  body = json.loads(event["body"])
+                  user_id = body.get("userId")
+              except (KeyError, TypeError, json.JSONDecodeError) as e:
+                  logger.error("Error parsing event body: %s", str(e))
+                  return {
+                      "statusCode": 400,
+                      "body": json.dumps({"error": "Invalid request body"}),
+                  }
+
+              if not user_id:
+                  logger.error("Missing userId in event body")
+                  return {"statusCode": 400, "body": json.dumps({"error": "Missing userId"})}
+
+              try:
+                  response = table.get_item(Key={"userId": user_id})
+                  if "Item" in response:
+                      logger.info("User found: %s", json.dumps(response["Item"]))
+                      return {"statusCode": 200, "body": json.dumps(response["Item"])}
+                  else:
+                      logger.warning("User not found: %s", user_id)
+                      return {"statusCode": 404, "body": json.dumps({"error": "User not found"})}
+              except Exception as e:
+                  logger.error("Exception: %s", str(e))
+                  return {"statusCode": 500, "body": json.dumps({"error": str(e)})}
+
+      Runtime: "python3.12"
+
+  GetUsersFunction:
+    Type: "AWS::Lambda::Function"
+    Properties:
+      FunctionName: "GetUsers"
+      Handler: "index.handler"
+      Role: !Ref LambdaExecutionRoleArn
+      Code:
+        ZipFile: |
+          import json
+          import boto3
+          from boto3.dynamodb.conditions import Key, Attr
+
+          dynamodb = boto3.resource("dynamodb")
+          table = dynamodb.Table("Users")
+
+
+          def lambda_handler(event, context):
+              role = event.get("queryStringParameters", {}).get("role")
+
+              if role:
+                  response = table.scan(
+                      FilterExpression=Attr("role").eq(role),
+                      ProjectionExpression="userId, #r",
+                      ExpressionAttributeNames={"#r": "role"},
+                  )
+              else:
+                  response = table.scan(
+                      ProjectionExpression="userId, #r", ExpressionAttributeNames={"#r": "role"}
+                  )
+
+              items = response.get("Items", [])
+
+              return {
+                  "statusCode": 200,
+                  "headers": {
+                      "Content-Type": "application/json",
+                  },
+                  "body": json.dumps(items),
+              }
+
+      Runtime: "python3.12"
+
+  ApiGatewayRestApi:
+    Type: "AWS::ApiGateway::RestApi"
+    Properties:
+      Name: "UserManagementAPI"
+
+  GetUserDetailsResource:
+    Type: "AWS::ApiGateway::Resource"
+    Properties:
+      ParentId: !GetAtt ApiGatewayRestApi.RootResourceId
+      PathPart: "get-user-details"
+      RestApiId: !Ref ApiGatewayRestApi
+
+  GetUserDetailsMethod:
+    Type: "AWS::ApiGateway::Method"
+    Properties:
+      AuthorizationType: "NONE"
+      HttpMethod: "POST"
+      ResourceId: !Ref GetUserDetailsResource
+      RestApiId: !Ref ApiGatewayRestApi
+      Integration:
+        IntegrationHttpMethod: "POST"
+        Type: "AWS_PROXY"
+        Uri: !Sub
+          - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetUserDetailsFunction.Arn}/invocations
+          - {
+              Region: !Ref "AWS::Region",
+              LambdaArn: !GetAtt GetUserDetailsFunction.Arn,
+            }
+
+  GetUsersResource:
+    Type: "AWS::ApiGateway::Resource"
+    Properties:
+      ParentId: !GetAtt ApiGatewayRestApi.RootResourceId
+      PathPart: "get-users"
+      RestApiId: !Ref ApiGatewayRestApi
+
+  GetUsersMethod:
+    Type: "AWS::ApiGateway::Method"
+    Properties:
+      AuthorizationType: "NONE"
+      HttpMethod: "GET"
+      ResourceId: !Ref GetUsersResource
+      RestApiId: !Ref ApiGatewayRestApi
+      Integration:
+        IntegrationHttpMethod: "POST"
+        Type: "AWS_PROXY"
+        Uri: !Sub
+          - arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${GetUsersFunction.Arn}/invocations
+          - {
+              Region: !Ref "AWS::Region",
+              LambdaArn: !GetAtt GetUsersFunction.Arn,
+            }
